@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style>
+      body {
+        font-family: monospace;
+      }
+    </style>
+    </head>
+  <body>
+    <script type="module">
+      import * as exports from "./build/release.js";
+  
+      const LOOP_COUNT = 10_000_000;
+      const SAMPLE_COUNT = 10;
+  
+      function* loops() {
+        for (const [name, loop] of Object.entries(exports).filter(([name]) => name.startsWith('loop_'))) {
+          yield [name, loop];
+        }
+      }
+  
+      function idle() {
+        return new Promise(resolve => requestIdleCallback(resolve));
+      }
+  
+      function print(s) {
+        document.body.innerText += s;
+      }
+
+      function sum(items) {
+        return items.reduce((a, b) => a + b);
+      }
+  
+      print(`Running ${LOOP_COUNT} iterations ${SAMPLE_COUNT} times...\n\n`);
+
+      for (const [name, loop] of loops()) {
+        print(`${name}:`);
+
+        await idle();
+
+        let samples = [];
+
+        for (let sample = 0; sample < SAMPLE_COUNT; sample++) {
+          const begin = performance.now();
+  
+          loop(LOOP_COUNT);
+  
+          const lap = performance.now();
+  
+          loop(LOOP_COUNT * 2);
+  
+          const end = performance.now();
+  
+          const elapsed = (end - lap) - (lap - begin);
+  
+          samples.push(elapsed);
+
+          print(` ${elapsed.toFixed(0)}ms`);
+  
+          await idle();
+        }
+
+        print('\n');
+
+        const mean = sum(samples) / samples.length;
+        const sd = Math.sqrt(sum(samples.map((sample) => (sample - mean) ** 2)) / samples.length);
+
+        print(`-> Mean: ${mean.toFixed(0)}ms SD: ${sd.toFixed(0)}ms\n`);
+
+        await idle();
+      }
+    </script>  
+  </body>
+</html>
