@@ -61,6 +61,35 @@ unsigned long calc_sd(unsigned long *samples, int count) {
   return sqrt(sum / count);
 }
 
+template <typename F> void benchmark(F &&fn) {
+  unsigned long samples[SAMPLE_COUNT];
+
+  for (int sample = 0; sample < SAMPLE_COUNT; sample++) {
+    unsigned long begin = millis();
+
+    fn(LOOP_COUNT);
+
+    unsigned long lap = millis();
+
+    fn(LOOP_COUNT * 2);
+
+    unsigned long end = millis();
+
+    unsigned long elapsed = (end - lap) - (lap - begin);
+
+    Serial.printf(" %dms", elapsed);
+
+    samples[sample] = elapsed;
+  }
+
+  Serial.println();
+
+  unsigned long mean = calc_mean(samples, SAMPLE_COUNT);
+  unsigned long sd = calc_sd(samples, SAMPLE_COUNT);
+
+  Serial.printf("-> Mean: %dms SD: %dms\n", mean, sd);
+}
+
 void setup() {
   Serial.begin(115200);
   delay(100);
@@ -136,7 +165,7 @@ void setup() {
         M3Result result;
 
         for (int j = 0; j < function->numNames; j++) {
-          Serial.printf("%s:", function->names[j]);
+          Serial.printf("Wasm %s:", function->names[j]);
 
           if (!function->compiled) {
             // Serial.println("    Compiling...");
@@ -163,44 +192,16 @@ void setup() {
             }
           }
 
-          unsigned long samples[SAMPLE_COUNT];
-
-          for (int sample = 0; sample < SAMPLE_COUNT; sample++) {
-            unsigned long begin = millis();
-
-            M3Result result = m3_CallV(function, LOOP_COUNT);
+          auto fn = [function](int loop_count) {
+            M3Result result = m3_CallV(function, loop_count);
 
             if (result) {
               Serial.print("    Error: ");
               Serial.println(result);
-              continue;
             }
+          };
 
-            unsigned long lap = millis();
-
-            result = m3_CallV(function, LOOP_COUNT * 2);
-
-            if (result) {
-              Serial.print("    Error: ");
-              Serial.println(result);
-              continue;
-            }
-
-            unsigned long end = millis();
-
-            unsigned long elapsed = (end - lap) - (lap - begin);
-
-            Serial.printf(" %dms", elapsed);
-
-            samples[sample] = elapsed;
-          }
-
-          Serial.println();
-
-          unsigned long mean = calc_mean(samples, SAMPLE_COUNT);
-          unsigned long sd = calc_sd(samples, SAMPLE_COUNT);
-
-          Serial.printf("-> Mean: %dms SD: %dms\n", mean, sd);
+          benchmark(fn);
         }
       }
 
@@ -208,6 +209,46 @@ void setup() {
     },
     NULL
   );
+
+  Serial.printf("%s:", "Native std::sin(double)");
+
+  benchmark([](int loop_count) {
+    double sum = 0;
+
+    for (int i = 0; i < loop_count; i++) {
+      sum += std::sin((double)i);
+    }
+  });
+
+  Serial.printf("%s:", "Native std::sin(float)");
+
+  benchmark([](int loop_count) {
+    float sum = 0;
+
+    for (int i = 0; i < loop_count; i++) {
+      sum += std::sin((float)i);
+    }
+  });
+
+  Serial.printf("%s:", "Native std::sqrt(double)");
+
+  benchmark([](int loop_count) {
+    double sum = 0;
+
+    for (int i = 0; i < loop_count; i++) {
+      sum += std::sqrt((double)i);
+    }
+  });
+
+  Serial.printf("%s:", "Native std::sqrt(float)");
+
+  benchmark([](int loop_count) {
+    double sum = 0;
+
+    for (int i = 0; i < loop_count; i++) {
+      sum += std::sqrt((float)i);
+    }
+  });
 }
 
 int frame = 0;
