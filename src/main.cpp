@@ -31,6 +31,7 @@
 
 #define LOOP_COUNT 10000
 #define SAMPLE_COUNT 10
+// #define BENCHMARK_WASM
 
 IM3Environment env;
 IM3Runtime runtime;
@@ -142,6 +143,7 @@ void setup() {
     "Running %d iterations %d times...\n\n", LOOP_COUNT, SAMPLE_COUNT
   );
 
+#ifdef BENCHMARK_WASM
   ForEachModule(
     runtime,
     [](IM3Module i_module, void *i_info) {
@@ -209,6 +211,12 @@ void setup() {
     },
     NULL
   );
+#endif
+
+  // Serial.printf("sin(2) = %f\n", std::sin(2));
+  // Serial.printf("sin(2.0) = %f\n", std::sin((double)2));
+  // Serial.printf("sin(2.0) = %f\n", std::sin((float)2.0));
+  // Serial.printf("sin(2.0) = %f\n", std::sin((long double)2.0));
 
   Serial.printf("%s:", "Native std::sin(double)");
 
@@ -227,6 +235,16 @@ void setup() {
 
     for (int i = 0; i < loop_count; i++) {
       sum += std::sin((float)i);
+    }
+  });
+
+  Serial.printf("%s:", "Native sinf(float)");
+
+  benchmark([](int loop_count) {
+    float sum = 0;
+
+    for (int i = 0; i < loop_count; i++) {
+      sum += sinf((float)i);
     }
   });
 
