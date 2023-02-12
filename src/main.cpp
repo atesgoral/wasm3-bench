@@ -31,7 +31,7 @@
 
 #define LOOP_COUNT 10000
 #define SAMPLE_COUNT 10
-// #define BENCHMARK_WASM
+#define BENCHMARK_WASM
 
 IM3Environment env;
 IM3Runtime runtime;
@@ -64,16 +64,13 @@ unsigned long calc_sd(unsigned long *samples, int count) {
 
 template <typename F> void benchmark(F &&fn) {
   unsigned long samples[SAMPLE_COUNT];
+  double sum = 0;
 
   for (int sample = 0; sample < SAMPLE_COUNT; sample++) {
     unsigned long begin = millis();
-
-    fn(LOOP_COUNT);
-
+    sum += fn(LOOP_COUNT);
     unsigned long lap = millis();
-
-    fn(LOOP_COUNT * 2);
-
+    sum += fn(LOOP_COUNT * 2);
     unsigned long end = millis();
 
     unsigned long elapsed = (end - lap) - (lap - begin);
@@ -88,7 +85,7 @@ template <typename F> void benchmark(F &&fn) {
   unsigned long mean = calc_mean(samples, SAMPLE_COUNT);
   unsigned long sd = calc_sd(samples, SAMPLE_COUNT);
 
-  Serial.printf("-> Mean: %dms SD: %dms\n", mean, sd);
+  Serial.printf("-> Mean: %dms SD: %dms Sum: %f\n", mean, sd, sum);
 }
 
 void setup() {
@@ -201,6 +198,11 @@ void setup() {
               Serial.print("    Error: ");
               Serial.println(result);
             }
+
+            double sum;
+            m3_GetResultsV(function, &sum);
+
+            return sum;
           };
 
           benchmark(fn);
@@ -226,6 +228,8 @@ void setup() {
     for (int i = 0; i < loop_count; i++) {
       sum += std::sin((double)i);
     }
+
+    return sum;
   });
 
   Serial.printf("%s:", "Native std::sin(float)");
@@ -236,6 +240,8 @@ void setup() {
     for (int i = 0; i < loop_count; i++) {
       sum += std::sin((float)i);
     }
+
+    return sum;
   });
 
   Serial.printf("%s:", "Native sinf(float)");
@@ -246,6 +252,8 @@ void setup() {
     for (int i = 0; i < loop_count; i++) {
       sum += sinf((float)i);
     }
+
+    return sum;
   });
 
   Serial.printf("%s:", "Native std::sqrt(double)");
@@ -256,6 +264,8 @@ void setup() {
     for (int i = 0; i < loop_count; i++) {
       sum += std::sqrt((double)i);
     }
+
+    return sum;
   });
 
   Serial.printf("%s:", "Native std::sqrt(float)");
@@ -266,6 +276,8 @@ void setup() {
     for (int i = 0; i < loop_count; i++) {
       sum += std::sqrt((float)i);
     }
+
+    return sum;
   });
 }
 
