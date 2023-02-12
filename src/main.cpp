@@ -29,9 +29,8 @@
 #include "./debug.wasm.h"
 #endif
 
-#define LOOP_COUNT 10000
 #define SAMPLE_COUNT 10
-#define BENCHMARK_WASM
+#define BENCHMARK_NATIVE_MATH
 
 IM3Environment env;
 IM3Runtime runtime;
@@ -39,8 +38,8 @@ IM3Module module;
 IM3Function render;
 IM3Function get_render_buffer;
 
-unsigned long calc_mean(unsigned long *samples, int count) {
-  unsigned long sum = 0;
+double calc_mean(double *samples, int count) {
+  double sum = 0;
 
   for (int i = 0; i < count; i++) {
     sum += samples[i];
@@ -49,46 +48,98 @@ unsigned long calc_mean(unsigned long *samples, int count) {
   return sum / count;
 }
 
-unsigned long calc_sd(unsigned long *samples, int count) {
-  unsigned long m = calc_mean(samples, count);
-  unsigned long sum = 0;
-  unsigned long delta;
+double calc_sd(double *samples, int count) {
+  double mean = calc_mean(samples, count);
+  double sum = 0;
+  double delta;
 
   for (int i = 0; i < count; i++) {
-    delta = samples[i] - m;
+    delta = samples[i] - mean;
     sum += delta * delta;
   }
 
   return sqrt(sum / count);
 }
 
+bool led_on = true;
+
+void toggleLed() {
+  led_on = !led_on;
+  digitalWrite(LED_PIN, led_on ? HIGH : LOW);
+}
+
+double sponge = 0;
+
+template <typename F> unsigned long time(F &&fn, int loop_count) {
+  unsigned long begin = millis();
+
+  // Absorb return value to prevent compiler from optimizing away the function
+  sponge += fn(loop_count);
+
+  unsigned long end = millis();
+
+  return end - begin;
+}
+
+String fmt_duration(double duration) {
+  if (duration >= 10 * 1000) {
+    return String((int)(duration / 1000)) + "s";
+  } else if (duration >= 10) {
+    return String((int)duration) + "ms";
+  } else if (duration >= 10 / 1000.0) {
+    return String((int)(duration * 1000)) + "µs";
+  } else {
+    int ns = (int)(duration * 1000 * 1000);
+
+    if (ns > 0) {
+      return String(ns) + "ns";
+    } else {
+      return "0";
+    }
+  }
+}
 template <typename F> void benchmark(F &&fn) {
-  unsigned long samples[SAMPLE_COUNT];
-  double sum = 0;
+  double samples[SAMPLE_COUNT];
+
+  int loop_count = 1;
+
+  while (time(fn, loop_count) < 100) {
+    loop_count *= 2;
+  }
 
   for (int sample = 0; sample < SAMPLE_COUNT; sample++) {
-    unsigned long begin = millis();
-    sum += fn(LOOP_COUNT);
-    unsigned long lap = millis();
-    sum += fn(LOOP_COUNT * 2);
-    unsigned long end = millis();
+    toggleLed();
 
-    unsigned long elapsed = (end - lap) - (lap - begin);
+    unsigned long loop_duration = time(fn, loop_count);
+    unsigned long loop_2x_duration = time(fn, loop_count * 2);
 
-    Serial.printf(" %dms", elapsed);
+    double loop_elapsed = loop_2x_duration - loop_duration;
 
-    samples[sample] = elapsed;
+    if (loop_elapsed < 0) {
+      loop_elapsed = 0;
+    }
+
+    double fn_elapsed = loop_elapsed / loop_count;
+
+    Serial.printf(" %s", fmt_duration(fn_elapsed).c_str());
+
+    samples[sample] = fn_elapsed;
   }
 
   Serial.println();
 
-  unsigned long mean = calc_mean(samples, SAMPLE_COUNT);
-  unsigned long sd = calc_sd(samples, SAMPLE_COUNT);
+  double mean = calc_mean(samples, SAMPLE_COUNT);
+  double sd = calc_sd(samples, SAMPLE_COUNT);
 
-  Serial.printf("-> Mean: %dms SD: %dms Sum: %f\n", mean, sd, sum);
+  Serial.printf(
+    "-> Mean: %s SD: %s\n", fmt_duration(mean).c_str(), fmt_duration(sd).c_str()
+  );
 }
 
 void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH);
+
   Serial.begin(115200);
   delay(100);
 
@@ -101,18 +152,15 @@ void setup() {
   rtc_cpu_freq_config_t cpu_freq_config;
   rtc_clk_cpu_freq_get_config(&cpu_freq_config);
 
-  // rtc_cpu_freq_t cpu_freq = rtc_clk_cpu_freq_get();
   Serial.printf("CPU frequency: %d MHz\n", cpu_freq_config.freq_mhz);
   Serial.printf(
     "CPU source frequency: %d MHz\n", cpu_freq_config.source_freq_mhz
   );
 
-  pinMode(LED_PIN, OUTPUT);
-
-  digitalWrite(LED_PIN, LOW);
-
-  Serial.println("\nWasm3 v" M3_VERSION " (" M3_ARCH "), build " __DATE__
+  Serial.println("Wasm3 v" M3_VERSION " (" M3_ARCH "), build " __DATE__
                  " " __TIME__);
+
+  Serial.println();
 
   M3Result result = m3Err_none;
 
@@ -136,11 +184,6 @@ void setup() {
   if (result)
     FATAL("LoadModule", result);
 
-  Serial.printf(
-    "Running %d iterations %d times...\n\n", LOOP_COUNT, SAMPLE_COUNT
-  );
-
-#ifdef BENCHMARK_WASM
   ForEachModule(
     runtime,
     [](IM3Module i_module, void *i_info) {
@@ -213,13 +256,8 @@ void setup() {
     },
     NULL
   );
-#endif
 
-  // Serial.printf("sin(2) = %f\n", std::sin(2));
-  // Serial.printf("sin(2.0) = %f\n", std::sin((double)2));
-  // Serial.printf("sin(2.0) = %f\n", std::sin((float)2.0));
-  // Serial.printf("sin(2.0) = %f\n", std::sin((long double)2.0));
-
+#ifdef BENCHMARK_NATIVE_MATH
   Serial.printf("%s:", "Native std::sin(double)");
 
   benchmark([](int loop_count) {
@@ -279,8 +317,11 @@ void setup() {
 
     return sum;
   });
-}
+#endif
 
-int frame = 0;
+  digitalWrite(LED_PIN, LOW);
+
+  Serial.println("Done!");
+}
 
 void loop() { delay(1000); }
