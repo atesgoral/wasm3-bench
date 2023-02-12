@@ -18,6 +18,7 @@
     "asbuild:release": "asc assembly/index.ts --target release",
     "asbuild": "npm run asbuild:debug && npm run asbuild:release",
     "genheader": "node genheader",
+    "build": "npm run asbuild && npm run genheader",
     "test": "node tests",
     "start": "npx serve ."
   }
