@@ -215,7 +215,7 @@ void setup() {
             result = CompileFunction(function);
 
             if (result) {
-              Serial.print("    Error: ");
+              Serial.print("\n  Error: ");
               Serial.println(result);
               continue;
             }
@@ -228,7 +228,7 @@ void setup() {
             result = m3_RunStart(function->module);
 
             if (result) {
-              Serial.print("    Error: ");
+              Serial.print("\n  Error: ");
               Serial.println(result);
               continue;
             }
@@ -238,7 +238,7 @@ void setup() {
             M3Result result = m3_CallV(function, loop_count);
 
             if (result) {
-              Serial.print("    Error: ");
+              Serial.print("\n  Error: ");
               Serial.println(result);
             }
 

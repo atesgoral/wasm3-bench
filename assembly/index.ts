@@ -31,18 +31,30 @@ export function metaballs_f32(count: i32): f64 {
   for (let i = 0; i < count; i++) {
     const s: f32 = <f32>count / 60;
 
+    // const xs = new Float32Array(2);
+    // const ys = new Float32Array(2);
+
+    // xs[0] = (Mathf.sin(s * 1.1) + 1) * 7.5;
+    // ys[0] = (Mathf.cos(s * 1.3) + 1) * 7.5;
+    // xs[1] = (Mathf.sin(s * 1.5) + 1) * 7.5;
+    // ys[1] = (Mathf.cos(s * 1.7) + 1) * 7.5;
+
+    const xs0: f32 = (Mathf.sin(s * 1.1) + 1) * 7.5;
+    const ys0: f32 = (Mathf.cos(s * 1.3) + 1) * 7.5;
+    const xs1: f32 = (Mathf.sin(s * 1.5) + 1) * 7.5;
+    const ys1: f32 = (Mathf.cos(s * 1.7) + 1) * 7.5;
+
     for (let y: i32 = 0; y < ROWS; y++) {
       for (let x: i32 = 0; x < COLS; x++) {
         let d: f32 = 0;
 
         d += 3 / Mathf.hypot(
-          7.5 + Mathf.sin(s * 1.1) * 7.5 - <f32>x,
-          (7.5 + Mathf.cos(s * 1.3) * 7.5 - <f32>y) / ASPECT_RATIO
+          xs0 - <f32>x,
+          (ys0 - <f32>y) / ASPECT_RATIO
         );
-
-        d += 2 / Mathf.hypot(
-          7.5 + Mathf.sin(s * 1.5) * 7.5 - <f32>x,
-          (7.5 + Mathf.cos(s * 1.7) * 7.5 - <f32>y) / ASPECT_RATIO
+        d += 3 / Mathf.hypot(
+          xs1 - <f32>x,
+          (ys1 - <f32>y) / ASPECT_RATIO
         );
 
         setXY(x, y, <u8>Mathf.round(smoothstep_f32(0.75, 1.0, d) * 3));
@@ -56,6 +68,16 @@ export function metaballs_f32(count: i32): f64 {
 /**
  * Math
  */
+
+export function loop_hypot_f32(count: i32): f64 {
+  let sum: f32 = 0;
+
+  for (let i = 0; i < count; i++) {
+    sum += Mathf.hypot(<f32>i, 1.0);
+  }
+
+  return sum;
+}
 
 export function loop_sin_f32(count: i32): f64 {
   let sum: f32 = 0;
