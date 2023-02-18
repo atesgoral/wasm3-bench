@@ -184,6 +184,15 @@ void setup() {
   if (result)
     FATAL("LoadModule", result);
 
+  IM3Function setup;
+  result = m3_FindFunction(&setup, runtime, "setup");
+  if (result)
+    FATAL("Find setup", result);
+
+  result = m3_CallV(setup);
+  if (result)
+    FATAL("setup", result);
+
   ForEachModule(
     runtime,
     [](IM3Module i_module, void *i_info) {
@@ -207,7 +216,13 @@ void setup() {
         M3Result result;
 
         for (int j = 0; j < function->numNames; j++) {
-          Serial.printf("Wasm %s:", function->names[j]);
+          cstr_t name = function->names[j];
+
+          if (strncmp(name, "bench_", strlen("bench_")) != 0) {
+            continue;
+          }
+
+          Serial.printf("Wasm %s:", name);
 
           if (!function->compiled) {
             // Serial.println("    Compiling...");
