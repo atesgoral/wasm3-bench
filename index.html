@@ -11,11 +11,10 @@
     <script type="module">
       import * as exports from "./build/release.js";
   
-      const LOOP_COUNT = 10_000_000;
       const SAMPLE_COUNT = 10;
   
-      function* loops() {
-        for (const [name, loop] of Object.entries(exports).filter(([name]) => name.startsWith('loop_'))) {
+      function* fns() {
+        for (const [name, loop] of Object.entries(exports).filter(([name]) => name.startsWith('bench_'))) {
           yield [name, loop];
         }
       }
@@ -32,33 +31,61 @@
         return items.reduce((a, b) => a + b);
       }
   
-      print(`Running ${LOOP_COUNT} iterations ${SAMPLE_COUNT} times...\n\n`);
+      function time(fn, loopCount) {
+        const begin = performance.now();
+        fn(loopCount);
+        const end = performance.now();
+        return end - begin;
+      }
 
-      for (const [name, loop] of loops()) {
+      function fmtDuration(duration) {
+        if (duration >= 10 * 1000) {
+          return duration / 1000 | 0 + 's';
+        } else if (duration >= 10) {
+          return duration | 0 + 'ms';
+        } else if (duration >= 10 / 1000.0) {
+          return duration * 1000 | 0 + 'µs';
+        } else {
+          const ns = duration * 1000 * 1000 | 0;
+
+          if (ns > 0) {
+            return ns + 'ns';
+          } else {
+            return '0';
+          }
+        }
+      }
+
+      for (const [name, fn] of fns()) {
         print(`${name}:`);
 
         await idle();
 
+        let loopCount = 1;
+
+        while (time(fn, loopCount) < 100) {
+          loopCount *= 2;
+        }
+
         let samples = [];
 
         for (let sample = 0; sample < SAMPLE_COUNT; sample++) {
-          const begin = performance.now();
-  
-          loop(LOOP_COUNT);
-  
-          const lap = performance.now();
-  
-          loop(LOOP_COUNT * 2);
-  
-          const end = performance.now();
-  
-          const elapsed = (end - lap) - (lap - begin);
-  
-          samples.push(elapsed);
+          const loopDuration = time(fn, loopCount);
+          const loop2xDuration = time(fn, loopCount * 2);
 
-          print(` ${elapsed.toFixed(0)}ms`);
+          let loopElapsed = loop2xDuration - loopDuration;
+
+          if (loopElapsed < 0) {
+            loopElapsed = 0;
+          }
+
+          const fnElapsed = loopElapsed / loopCount;
+  
+          print(` ${fmtDuration(fnElapsed)}`);
   
           await idle();
+
+          samples.push(fnElapsed);
         }
 
         print('\n');
@@ -66,7 +93,7 @@
         const mean = sum(samples) / samples.length;
         const sd = Math.sqrt(sum(samples.map((sample) => (sample - mean) ** 2)) / samples.length);
 
-        print(`-> Mean: ${mean.toFixed(0)}ms SD: ${sd.toFixed(0)}ms\n`);
+        print(`-> Mean: ${fmtDuration(mean)} SD: ${fmtDuration(sd)}\n`);
 
         await idle();
       }
