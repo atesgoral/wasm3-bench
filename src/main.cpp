@@ -98,6 +98,7 @@ String fmt_duration(double duration) {
     }
   }
 }
+
 template <typename F> void benchmark(F &&fn) {
   double samples[SAMPLE_COUNT];
 
