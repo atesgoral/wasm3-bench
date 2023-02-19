@@ -82,17 +82,9 @@ export function setup(): void {
   gen_sqrt();
 }
 
-export function bench_metaballs_f32(count: i32): f64 {
+export function bench_metaballs_hypot_f32(count: i32): f64 {
   for (let i = 0; i < count; i++) {
     const s: f32 = <f32>count / 60;
-
-    // const xs = new Float32Array(2);
-    // const ys = new Float32Array(2);
-
-    // xs[0] = (Mathf.sin(s * 1.1) + 1) * 7.5;
-    // ys[0] = (Mathf.cos(s * 1.3) + 1) * 7.5;
-    // xs[1] = (Mathf.sin(s * 1.5) + 1) * 7.5;
-    // ys[1] = (Mathf.cos(s * 1.7) + 1) * 7.5;
 
     const xs0: f32 = (Mathf.sin(s * 1.1) + 1) * 7.5;
     const ys0: f32 = (Mathf.cos(s * 1.3) + 1) * 7.5;
@@ -110,6 +102,36 @@ export function bench_metaballs_f32(count: i32): f64 {
         d += 3 / Mathf.hypot(
           xs1 - <f32>x,
           (ys1 - <f32>y) / ASPECT_RATIO
+        );
+
+        setXY(x, y, <u8>Mathf.round(smoothstep_f32(0.75, 1.0, d) * 3));
+      }
+    }
+  }
+
+  return 0;
+}
+
+export function bench_metaballs_sqrt_f32(count: i32): f64 {
+  for (let i = 0; i < count; i++) {
+    const s: f32 = <f32>count / 60;
+
+    const xs0: f32 = (Mathf.sin(s * 1.1) + 1) * 7.5;
+    const ys0: f32 = (Mathf.cos(s * 1.3) + 1) * 7.5;
+    const xs1: f32 = (Mathf.sin(s * 1.5) + 1) * 7.5;
+    const ys1: f32 = (Mathf.cos(s * 1.7) + 1) * 7.5;
+
+    for (let y: i32 = 0; y < ROWS; y++) {
+      for (let x: i32 = 0; x < COLS; x++) {
+        let d: f32 = 0;
+
+        d += 3 / Mathf.sqrt(
+          (xs0 - <f32>x) ** 2
+          + ((ys0 - <f32>y) / ASPECT_RATIO) ** 2
+        );
+        d += 3 / Mathf.sqrt(
+          (xs1 - <f32>x) ** 2
+          + ((ys1 - <f32>y) / ASPECT_RATIO) ** 2
         );
 
         setXY(x, y, <u8>Mathf.round(smoothstep_f32(0.75, 1.0, d) * 3));
@@ -124,14 +146,6 @@ export function bench_metaballs_lu_f32(count: i32): f64 {
   for (let i = 0; i < count; i++) {
     const s: f32 = <f32>count / 60;
 
-    // const xs = new Float32Array(2);
-    // const ys = new Float32Array(2);
-
-    // xs[0] = (Mathf.sin(s * 1.1) + 1) * 7.5;
-    // ys[0] = (Mathf.cos(s * 1.3) + 1) * 7.5;
-    // xs[1] = (Mathf.sin(s * 1.5) + 1) * 7.5;
-    // ys[1] = (Mathf.cos(s * 1.7) + 1) * 7.5;
-
     const xs0: f32 = (lu_sin(s * 1.1) + 1) * 7.5;
     const ys0: f32 = (lu_cos(s * 1.3) + 1) * 7.5;
     const xs1: f32 = (lu_sin(s * 1.5) + 1) * 7.5;
@@ -141,51 +155,13 @@ export function bench_metaballs_lu_f32(count: i32): f64 {
       for (let x: i32 = 0; x < COLS; x++) {
         let d: f32 = 0;
 
-        d += 3 / Mathf.hypot(
-          xs0 - <f32>x,
-          (ys0 - <f32>y) / ASPECT_RATIO
+        d += 3 / lu_sqrt(
+          (xs0 - <f32>x) ** 2
+          + ((ys0 - <f32>y) / ASPECT_RATIO) ** 2
         );
-        d += 3 / Mathf.hypot(
-          xs1 - <f32>x,
-          (ys1 - <f32>y) / ASPECT_RATIO
-        );
-
-        setXY(x, y, <u8>Mathf.round(smoothstep_f32(0.75, 1.0, d) * 3));
-      }
-    }
-  }
-
-  return 0;
-}
-
-export function bench_metaballs_x(count: i32): f64 {
-  for (let i = 0; i < count; i++) {
-    const s: f32 = <f32>count / 60;
-
-    // const xs = new Float32Array(2);
-    // const ys = new Float32Array(2);
-
-    // xs[0] = (Mathf.sin(s * 1.1) + 1) * 7.5;
-    // ys[0] = (Mathf.cos(s * 1.3) + 1) * 7.5;
-    // xs[1] = (Mathf.sin(s * 1.5) + 1) * 7.5;
-    // ys[1] = (Mathf.cos(s * 1.7) + 1) * 7.5;
-
-    const xs0: f32 = (Mathf.sin(s * 1.1) + 1) * 7.5;
-    const ys0: f32 = (Mathf.cos(s * 1.3) + 1) * 7.5;
-    const xs1: f32 = (Mathf.sin(s * 1.5) + 1) * 7.5;
-    const ys1: f32 = (Mathf.cos(s * 1.7) + 1) * 7.5;
-
-    for (let y: i32 = 0; y < ROWS; y++) {
-      for (let x: i32 = 0; x < COLS; x++) {
-        let d: f32 = 0;
-
-        d += 3 / hypot_32(
-          xs0 - <f32>x,
-          (ys0 - <f32>y) / ASPECT_RATIO
-        );
-        d += 3 / hypot_32(
-          xs1 - <f32>x,
-          (ys1 - <f32>y) / ASPECT_RATIO
+        d += 3 / lu_sqrt(
+          (xs1 - <f32>x) ** 2
+          + ((ys1 - <f32>y) / ASPECT_RATIO) ** 2
         );
 
         setXY(x, y, <u8>Mathf.round(smoothstep_f32(0.75, 1.0, d) * 3));
@@ -204,7 +180,33 @@ export function bench_hypot_f32(count: i32): f64 {
   let sum: f32 = 0;
 
   for (let i = 0; i < count; i++) {
-    sum += Mathf.hypot(<f32>i, 1.0);
+    const a: f32 = <f32>i;
+    const b: f32 = <f32>(count - i);
+
+    sum += Mathf.hypot(a, b);
+  }
+
+  return sum;
+}
+
+export function bench_hypot_via_sqrt_f32(count: i32): f64 {
+  let sum: f32 = 0;
+
+  for (let i = 0; i < count; i++) {
+    const a: f32 = <f32>i;
+    const b: f32 = <f32>(count - i);
+
+    sum += Mathf.sqrt(a ** 2 + b ** 2);
+  }
+
+  return sum;
+}
+
+export function bench_lu_hypot(count: i32): f64 {
+  let sum: f32 = 0;
+
+  for (let i = 0; i < count; i++) {
+    sum += hypot_32(<f32>i, 1.0);
   }
 
   return sum;
@@ -215,6 +217,16 @@ export function bench_sin_f32(count: i32): f64 {
 
   for (let i = 0; i < count; i++) {
     sum += Mathf.sin(<f32>i);
+  }
+
+  return sum;
+}
+
+export function bench_lu_sin(count: i32): f64 {
+  let sum: f32 = 0;
+
+  for (let i = 0; i < count; i++) {
+    sum += lu_sin(<f32>i);
   }
 
   return sum;
@@ -235,6 +247,16 @@ export function bench_sqrt_f32(count: i32): f64 {
 
   for (let i = 0; i < count; i++) {
     sum += Mathf.sqrt(<f32>i);
+  }
+
+  return sum;
+}
+
+export function bench_lu_sqrt(count: i32): f64 {
+  let sum: f32 = 0;
+
+  for (let i = 0; i < count; i++) {
+    sum += lu_sqrt(<f32>i);
   }
 
   return sum;
