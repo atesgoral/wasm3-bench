@@ -11,6 +11,8 @@
     <script type="module">
       import * as exports from "./build/release.js";
   
+      exports?.setup();
+      
       const SAMPLE_COUNT = 10;
   
       function* fns() {
