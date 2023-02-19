@@ -41,6 +41,13 @@ function gen_cos(): void {
   }
 }
 
+function gen_sqrt(): void {
+  for (let i: i32 = 0; i < 100; i++) {
+    const s: f32 = Mathf.sqrt(<f32>i);
+    store<f32>(256 + 256 + 256 + i * 4, s);
+  }
+}
+
 function lu_sin(a: f32): f32 {
   const i: i32 = <i32>((((a / (Mathf.PI * 2) * 256) % 256) + 256) % 256);
   return load<f32>(256 + i * 4);
@@ -51,9 +58,28 @@ function lu_cos(a: f32): f32 {
   return load<f32>(256 + 256 + i * 4);
 }
 
+function lu_sqrt(a: f32): f32 {
+  let p: f32 = 1;
+  let v: f32 = a;
+
+  while (v >= 100) {
+    v /= 100;
+    p *= 10;
+  }
+
+  const i: i32 = <i32>v;
+
+  return load<f32>(256 + 256 + 256 + i * 4) * p;
+}
+
+function hypot_32(a: f32, b: f32): f32 {
+  return lu_sqrt(a * a + b * b);
+}
+
 export function setup(): void {
   gen_sin();
   gen_cos();
+  gen_sqrt();
 }
 
 export function bench_metaballs_f32(count: i32): f64 {
@@ -120,6 +146,44 @@ export function bench_metaballs_lu_f32(count: i32): f64 {
           (ys0 - <f32>y) / ASPECT_RATIO
         );
         d += 3 / Mathf.hypot(
+          xs1 - <f32>x,
+          (ys1 - <f32>y) / ASPECT_RATIO
+        );
+
+        setXY(x, y, <u8>Mathf.round(smoothstep_f32(0.75, 1.0, d) * 3));
+      }
+    }
+  }
+
+  return 0;
+}
+
+export function bench_metaballs_x(count: i32): f64 {
+  for (let i = 0; i < count; i++) {
+    const s: f32 = <f32>count / 60;
+
+    // const xs = new Float32Array(2);
+    // const ys = new Float32Array(2);
+
+    // xs[0] = (Mathf.sin(s * 1.1) + 1) * 7.5;
+    // ys[0] = (Mathf.cos(s * 1.3) + 1) * 7.5;
+    // xs[1] = (Mathf.sin(s * 1.5) + 1) * 7.5;
+    // ys[1] = (Mathf.cos(s * 1.7) + 1) * 7.5;
+
+    const xs0: f32 = (Mathf.sin(s * 1.1) + 1) * 7.5;
+    const ys0: f32 = (Mathf.cos(s * 1.3) + 1) * 7.5;
+    const xs1: f32 = (Mathf.sin(s * 1.5) + 1) * 7.5;
+    const ys1: f32 = (Mathf.cos(s * 1.7) + 1) * 7.5;
+
+    for (let y: i32 = 0; y < ROWS; y++) {
+      for (let x: i32 = 0; x < COLS; x++) {
+        let d: f32 = 0;
+
+        d += 3 / hypot_32(
+          xs0 - <f32>x,
+          (ys0 - <f32>y) / ASPECT_RATIO
+        );
+        d += 3 / hypot_32(
           xs1 - <f32>x,
           (ys1 - <f32>y) / ASPECT_RATIO
         );
