@@ -40,11 +40,11 @@
 
       function fmtDuration(duration) {
         if (duration >= 10 * 1000) {
-          return duration / 1000 | 0 + 's';
+          return (duration / 1000 | 0) + 's';
         } else if (duration >= 10) {
-          return duration | 0 + 'ms';
+          return (duration | 0) + 'ms';
         } else if (duration >= 10 / 1000.0) {
-          return duration * 1000 | 0 + 'µs';
+          return (duration * 1000 | 0) + 'µs';
         } else {
           const ns = duration * 1000 * 1000 | 0;
 
